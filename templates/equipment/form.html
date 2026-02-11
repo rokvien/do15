@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ title }}</h2>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <div class="mb-3">
+        {{ form.name.label_tag }}
+        {{ form.name }}
+    </div>
+    <div class="mb-3">
+        {{ form.inventory_number.label_tag }}
+        {{ form.inventory_number }}
+    </div>
+    <div class="mb-3">
+        {{ form.equipment_type.label_tag }}
+        {{ form.equipment_type }}
+    </div>
+    <div class="mb-3">
+        {{ form.workshop.label_tag }}
+        {{ form.workshop }}
+    </div>
+    <div class="mb-3">
+        {{ form.passport_scan.label_tag }}
+        {{ form.passport_scan }}
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="{% url 'equipment_list' %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

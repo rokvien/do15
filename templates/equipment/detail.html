@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ equipment.name }}</h2>
+    <p><strong>Инв. номер:</strong> {{ equipment.inventory_number }}</p>
+    <p><strong>Тип:</strong> {{ equipment.equipment_type.name }}</p>
+    <p><strong>Цех:</strong> {{ equipment.workshop.name }}</p>
+    {% if equipment.passport_scan %}
+        <p><a href="{{ equipment.passport_scan.url }}" target="_blank">Скан паспорта</a></p>
+    {% endif %}
+    <a href="{% url 'equipment_list' %}" class="btn btn-secondary">Назад</a>
+</div>
+{% endblock %}

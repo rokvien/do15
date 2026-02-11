@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:15
+    container_name: equipment_db
+    restart: always
+    environment:
+      POSTGRES_DB: equipment_db
+      POSTGRES_USER: equipment_user
+      POSTGRES_PASSWORD: strongpassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: .
+    container_name: equipment_web
+    restart: always
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - .:/app
+      - media:/app/media
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+  media:

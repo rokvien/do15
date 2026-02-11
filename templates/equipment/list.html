@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Каталог оборудования</h2>
+
+
+
+<form method="get" class="row g-3 mb-4">
+    <div class="col-md-3">
+        {{ filter.form.name.label_tag }}
+        <p></p>
+        {{ filter.form.name }}
+    </div>
+    <div class="col-md-3">
+        {{ filter.form.inventory_number.label_tag }}
+        <p></p>
+        {{ filter.form.inventory_number }}
+    </div>
+    <div class="col-md-3">
+        {{ filter.form.equipment_type.label_tag }}
+        <p></p>
+        {{ filter.form.equipment_type }}
+    </div>
+    <div class="col-md-3">
+        {{ filter.form.workshop.label_tag }}
+        <p></p>
+        {{ filter.form.workshop }}
+    </div>
+
+    <div class="col-12" align="center">
+        <button type="submit" class="btn btn-primary">Фильтр</button>
+        <a href="{% url 'equipment_list' %}" class="btn btn-secondary">Сброс</a>
+    </div>
+</form>
+
+{% if user.groups.all.0.name != "Viewer" %}
+<a href="{% url 'equipment_create' %}" class="btn btn-success mb-3">Добавить оборудование</a>
+{% endif %}
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Название</th>
+            <th>Инвентарный номер</th>
+            <th>Тип оборудования</th>
+            <th>Цех</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for eq in equipments %}
+        <tr>
+            <td>{{ eq.name }}</td>
+            <td>{{ eq.inventory_number }}</td>
+            <td>{{ eq.equipment_type.name }}</td>
+            <td>{{ eq.workshop.name }}</td>
+            <td>
+                {% if user.groups.all.0.name != "Viewer" %}
+                <a href="{% url 'equipment_update' eq.id %}" class="btn btn-sm btn-primary">Редактировать</a>
+                <a href="{% url 'equipment_delete' eq.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% endif %}
+                <a href="{% url 'equipment_detail' eq.id %}" class="btn btn-sm btn-info">Детали</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if is_paginated %}
+<nav aria-label="Page navigation example">
+    <ul class="pagination justify-content-center">
+
+        {# Кнопка «Предыдущая» #}
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}"
+                   target="_self"
+                   aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;</span>
+            </li>
+        {% endif %}
+
+        {# Номера страниц #}
+        {% for num in paginator.page_range %}
+            {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+            {% else %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}"
+                       target="_self">
+                        {{ num }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {# Кнопка «Следующая» #}
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}"
+                   target="_self"
+                   aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;</span>
+            </li>
+        {% endif %}
+
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}
