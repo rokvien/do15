@@ -70,7 +70,9 @@
             <td>
                 {% if user.groups.all.0.name != "Viewer" %}
                 <a href="{% url 'equipment_update' eq.id %}" class="btn btn-sm btn-primary">Редактировать</a>
+                {% if user.groups.all.0.name == "Admin" %}
                 <a href="{% url 'equipment_delete' eq.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% endif %}
                 {% endif %}
                 <a href="{% url 'equipment_detail' eq.id %}" class="btn btn-sm btn-info">Детали</a>
             </td>

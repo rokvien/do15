@@ -102,7 +102,7 @@ if "pytest" in sys.argv[0]:
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Equipment Catalog API',
-    'DESCRIPTION': 'API for managing enterprise equipment catalog',
+    'DESCRIPTION': 'API for managing equipment catalog',
     'VERSION': '1.0.0',
 }
 

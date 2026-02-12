@@ -39,10 +39,7 @@ class EquipmentTypeSerializer(serializers.ModelSerializer):
 
 class EquipmentCharacteristicValueSerializer(serializers.ModelSerializer):
     characteristic_name = serializers.CharField(source="characteristic.name", read_only=True)
-    # Принимаем только числовой ID
-    characteristic = serializers.PrimaryKeyRelatedField(
-        queryset=Characteristic.objects.all()
-    )
+    characteristic = serializers.PrimaryKeyRelatedField(queryset=Characteristic.objects.all())
 
     class Meta:
         model = EquipmentCharacteristicValue
@@ -54,18 +51,13 @@ class EquipmentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Equipment
-        fields = ["id", "name", "inventory_number", "equipment_type", "workshop", "parent", "passport_scan",
-                  "characteristic_values"]
+        fields = ["id", "name", "inventory_number", "equipment_type", "workshop", "parent", "passport_scan", "characteristic_values"]
 
     def create(self, validated_data):
         char_data = validated_data.pop("characteristic_values", [])
         equipment = Equipment.objects.create(**validated_data)
         for item in char_data:
-            EquipmentCharacteristicValue.objects.create(
-                equipment=equipment,
-                characteristic=item["characteristic"],
-                value=item["value"]
-            )
+            EquipmentCharacteristicValue.objects.create(equipment=equipment, characteristic=item["characteristic"], value=item["value"])
         return equipment
 
     def update(self, instance, validated_data):
@@ -77,9 +69,5 @@ class EquipmentSerializer(serializers.ModelSerializer):
         if char_data is not None:
             instance.characteristic_values.all().delete()
             for item in char_data:
-                EquipmentCharacteristicValue.objects.create(
-                    equipment=instance,
-                    characteristic=item["characteristic"],
-                    value=item["value"]
-                )
+                EquipmentCharacteristicValue.objects.create(equipment=instance, characteristic=item["characteristic"], value=item["value"])
         return instance

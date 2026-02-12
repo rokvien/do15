@@ -18,18 +18,14 @@ from .models import Equipment
 class RoleRequiredMixin(UserPassesTestMixin):
     def test_func(self):
         user = self.request.user
-
         if user.groups.filter(name="Admin").exists():
             return True
-
         if user.groups.filter(name="Manager").exists():
-            if self.request.method == "DELETE":
+            if isinstance(self, DeleteView):
                 return False
             return True
-
         if user.groups.filter(name="Viewer").exists():
             return self.request.method == "GET"
-
         return False
 
 
@@ -60,10 +56,8 @@ class EquipmentViewSet(ModelViewSet):
 
     serializer_class = EquipmentSerializer
     filterset_class = EquipmentFilter
-
     search_fields = ["name", "inventory_number"]
     ordering_fields = ["name", "created_at"]
-
     permission_classes = [RoleBasedPermission]
     throttle_classes = [UserRateThrottle]
 
@@ -75,28 +69,16 @@ class EquipmentListView(LoginRequiredMixin, ListView):
     paginate_by = 2
 
     def get_queryset(self):
-        queryset = Equipment.objects.select_related(
-            "equipment_type",
-            "workshop",
-            "workshop__site",
-        )
-
-        self.filterset = EquipmentHTMLFilter(
-            self.request.GET,
-            queryset=queryset
-        )
-
+        queryset = Equipment.objects.select_related("equipment_type", "workshop", "workshop__site",)
+        self.filterset = EquipmentHTMLFilter(self.request.GET, queryset=queryset)
         qs = self.filterset.qs
-
         sort = self.request.GET.get("sort")
-
         if sort == "inventory_number":
             qs = qs.order_by("inventory_number")
         elif sort == "-inventory_number":
             qs = qs.order_by("-inventory_number")
         else:
             qs = qs.order_by("name")
-
         return qs
 
     def get_context_data(self, **kwargs):
