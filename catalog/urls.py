@@ -23,6 +23,7 @@ router.register("equipment", EquipmentViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
+
     path("catalog/", EquipmentListView.as_view(), name="equipment_list"),
     path("catalog/<int:pk>/", EquipmentDetailView.as_view(), name="equipment_detail"),
     path("catalog/create/", EquipmentCreateView.as_view(), name="equipment_create"),

@@ -16,7 +16,6 @@ from .models import Equipment
 
 
 class RoleRequiredMixin(UserPassesTestMixin):
-
     def test_func(self):
         user = self.request.user
 
@@ -54,7 +53,7 @@ class EquipmentViewSet(ModelViewSet):
         "equipment_type",
         "workshop",
         "workshop__site",
-        "parent"
+        "parent",
     ).prefetch_related(
         "characteristic_values__characteristic"
     )
@@ -79,20 +78,58 @@ class EquipmentListView(LoginRequiredMixin, ListView):
         queryset = Equipment.objects.select_related(
             "equipment_type",
             "workshop",
-            "workshop__site"
-        ).all()
+            "workshop__site",
+        )
 
         self.filterset = EquipmentHTMLFilter(
             self.request.GET,
             queryset=queryset
         )
 
-        return self.filterset.qs
+        qs = self.filterset.qs
+
+        sort = self.request.GET.get("sort")
+
+        if sort == "inventory_number":
+            qs = qs.order_by("inventory_number")
+        elif sort == "-inventory_number":
+            qs = qs.order_by("-inventory_number")
+        else:
+            qs = qs.order_by("name")
+
+        return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["filter"] = self.filterset
         return context
+
+
+# class EquipmentListView(LoginRequiredMixin, ListView):
+#     model = Equipment
+#     template_name = "equipment/list.html"
+#     context_object_name = "equipments"
+#     paginate_by = 2
+#
+#     def get_queryset(self):
+#         queryset = Equipment.objects.select_related(
+#             "equipment_type",
+#             "workshop",
+#             "workshop__site",
+#             "sort",
+#         ).all()
+#
+#         self.filterset = EquipmentHTMLFilter(
+#             self.request.GET,
+#             queryset=queryset
+#         )
+#
+#         return self.filterset.qs
+#
+#     def get_context_data(self, **kwargs):
+#         context = super().get_context_data(**kwargs)
+#         context["filter"] = self.filterset
+#         return context
 
 
 class EquipmentDetailView(LoginRequiredMixin, DetailView):
@@ -119,5 +156,3 @@ class EquipmentDeleteView(LoginRequiredMixin, RoleRequiredMixin, DeleteView):
     model = Equipment
     template_name = "equipment/delete.html"
     success_url = reverse_lazy("equipment_list")
-
-

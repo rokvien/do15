@@ -1,9 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<h2>Каталог оборудования</h2>
-
-
+<br><br><br><br>
 
 <form method="get" class="row g-3 mb-4">
     <div class="col-md-3">
@@ -27,21 +25,36 @@
         {{ filter.form.workshop }}
     </div>
 
+    <br><br>
+
     <div class="col-12" align="center">
         <button type="submit" class="btn btn-primary">Фильтр</button>
         <a href="{% url 'equipment_list' %}" class="btn btn-secondary">Сброс</a>
     </div>
 </form>
 
+
 {% if user.groups.all.0.name != "Viewer" %}
-<a href="{% url 'equipment_create' %}" class="btn btn-success mb-3">Добавить оборудование</a>
+    <div class="col-12" align="center">
+        <a href="{% url 'equipment_create' %}" class="btn btn-success mb-3">Добавить оборудование</a>
+    </div>
 {% endif %}
 
 <table class="table table-bordered table-hover">
-    <thead class="table-dark">
+    <thead class="table-light">
         <tr>
             <th>Название</th>
-            <th>Инвентарный номер</th>
+            <th>
+                <a href="?{% for key,value in request.GET.items %}{% if key != 'sort' and key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}{% if request.GET.sort == 'inventory_number' %}sort=-inventory_number{% else %}sort=inventory_number{% endif %}"
+                   class="link-dark text-decoration-none">
+                    Инвентарный номер
+                    {% if request.GET.sort == 'inventory_number' %}
+                        ▲
+                    {% elif request.GET.sort == '-inventory_number' %}
+                        ▼
+                    {% endif %}
+                </a>
+            </th>
             <th>Тип оборудования</th>
             <th>Цех</th>
             <th>Действия</th>

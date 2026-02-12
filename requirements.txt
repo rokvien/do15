@@ -1,31 +1,12 @@
-# Django
 Django>=6.0,<7.0
-
-# PostgreSQL driver
 psycopg2-binary>=2.9
-
-# Django REST Framework
 djangorestframework>=3.15
-
-# JWT для DRF
-djangorestframework-simplejwt>=5.2.2,<6.0  # последняя стабильная версия до 6.0
-
-# Swagger / OpenAPI
+djangorestframework-simplejwt>=5.2.2,<6.0
 drf-spectacular>=0.27
-
-# Фильтры
 django-filter>=23.1
-
-# Тесты
 pytest>=8.0
 pytest-django>=4.5
 pytest-cov>=4.1
-
-# Gunicorn для production
 gunicorn>=21.2
-
-# .env
 python-dotenv>=1.0
-
-# Pillow для работы с изображениями (passport_scan)
 Pillow>=10.0
