@@ -9,11 +9,11 @@ class SiteSerializer(serializers.ModelSerializer):
 
 
 class WorkshopSerializer(serializers.ModelSerializer):
-    site = serializers.StringRelatedField()
+    site_name = serializers.CharField(source='site.name', read_only=True)
 
     class Meta:
         model = Workshop
-        fields = ['id', 'name', 'site']
+        fields = ['id', 'name', 'site', 'site_name']
 
 
 class EquipmentTypeSerializer(serializers.ModelSerializer):
@@ -25,16 +25,16 @@ class EquipmentTypeSerializer(serializers.ModelSerializer):
 
 
 class EquipmentSerializer(serializers.ModelSerializer):
-    equipment_type = serializers.StringRelatedField()
-    workshop = serializers.StringRelatedField()
-    site = serializers.SerializerMethodField()
-    parent = serializers.StringRelatedField()
+    equipment_type = serializers.PrimaryKeyRelatedField(queryset=EquipmentType.objects.all())
+    workshop = serializers.PrimaryKeyRelatedField(queryset=Workshop.objects.all())
+    parent = serializers.PrimaryKeyRelatedField(queryset=Equipment.objects.all(), allow_null=True, required=False)
+    equipment_type_name = serializers.CharField(source='equipment_type.name', read_only=True)
+    workshop_name = serializers.CharField(source='workshop.name', read_only=True)
+    site_name = serializers.CharField(source='workshop.site.name', read_only=True)
 
     class Meta:
         model = Equipment
-        fields = ['id', 'name', 'inventory_number', 'equipment_type', 'workshop', 'site', 'parent', 'created_at']
-
-    def get_site(self, obj):
-        if obj.workshop and obj.workshop.site:
-            return obj.workshop.site.name
-        return None
+        fields = [
+            'id', 'name', 'inventory_number', 'equipment_type', 'equipment_type_name',
+            'workshop', 'workshop_name', 'site_name', 'parent', 'created_at'
+        ]
