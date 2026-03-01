@@ -10,15 +10,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: checkout
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      - name: Cache pip
+      - name: pip
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
@@ -26,20 +26,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Install dependencies
+      - name: dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-django
 
-      - name: Build containers
+      - name: build
         run: docker compose build
 
-      - name: Start containers
+      - name: up
         run: docker compose up -d
 
-      - name: Run migrations
-        run: docker compose exec -T web python manage.py migrate
+      - name: migrate
+        run: docker compose exec -T api python manage.py migrate
 
-      - name: Run tests
-        run: docker compose exec -T web pytest --ds=config.settings --tb=short
+      - name: pytest
+        run: docker compose exec -T api pytest --ds=config.settings --tb=short

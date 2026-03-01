@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
 
-  web:
+  api:
     build: .
     container_name: equipment_api
     restart: always
