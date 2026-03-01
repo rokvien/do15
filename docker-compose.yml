@@ -14,7 +14,7 @@ services:
 
   web:
     build: .
-    container_name: equipment_web
+    container_name: equipment_api
     restart: always
     command: >
       sh -c "

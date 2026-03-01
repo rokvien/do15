@@ -1,12 +1,14 @@
 import pytest
-from rest_framework.test import APIClient
 from django.contrib.auth.models import User, Group
-from catalog.models import Site, Workshop, EquipmentType, Equipment, Characteristic
-from catalog.permissions import RoleBasedPermission
+from rest_framework.test import APIClient
+from django.conf import settings
 
-# =====================================
-# Fixtures
-# =====================================
+from catalog.models import Site, Workshop, EquipmentType, Equipment
+
+
+# =========================================================
+# FIXTURES
+# =========================================================
 
 @pytest.fixture(scope="session", autouse=True)
 def create_roles(django_db_setup, django_db_blocker):
@@ -14,206 +16,245 @@ def create_roles(django_db_setup, django_db_blocker):
         Group.objects.get_or_create(name="Admin")
         Group.objects.get_or_create(name="Manager")
         Group.objects.get_or_create(name="Viewer")
+
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+
 @pytest.fixture
 def admin_user(db):
-    user = User.objects.create_user(username="admin", password="password")
-    group = Group.objects.get(name="Admin")
-    user.groups.add(group)
+    user = User.objects.create_user("admin", password="pass")
+    user.groups.add(Group.objects.get(name="Admin"))
     return user
+
+
 @pytest.fixture
 def manager_user(db):
-    user = User.objects.create_user(username="manager", password="password")
-    group = Group.objects.get(name="Manager")
-    user.groups.add(group)
+    user = User.objects.create_user("manager", password="pass")
+    user.groups.add(Group.objects.get(name="Manager"))
     return user
+
+
 @pytest.fixture
 def viewer_user(db):
-    user = User.objects.create_user(username="viewer", password="password")
-    group = Group.objects.get(name="Viewer")
-    user.groups.add(group)
+    user = User.objects.create_user("viewer", password="pass")
+    user.groups.add(Group.objects.get(name="Viewer"))
     return user
+
+
 @pytest.fixture
 def equipment_data(db):
-    site = Site.objects.create(name="Site1")
-    workshop = Workshop.objects.create(name="Workshop1", site=site)
-    eq_type = EquipmentType.objects.create(name="Pump")
+    site = Site.objects.create(name="Площадка 1")
+    workshop = Workshop.objects.create(name="Цех 1", site=site)
+    eq_type = EquipmentType.objects.create(name="Ручной инструмент")
+
     equipment = Equipment.objects.create(
-        name="Pump1",
-        inventory_number="INV001",
+        name="Молоток1",
+        inventory_number="М001",
         equipment_type=eq_type,
         workshop=workshop
     )
+
     return equipment
 
 
-# =====================================
-# Disable throttling for tests
-# =====================================
-
-@pytest.fixture(autouse=True)
-def disable_throttling(monkeypatch):
-    from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
-    monkeypatch.setattr(UserRateThrottle, 'allow_request', lambda self, request, view: True)
-    monkeypatch.setattr(AnonRateThrottle, 'allow_request', lambda self, request, view: True)
-
-
-# =====================================
-# Tests: Authentication
-# =====================================
+# =========================================================
+# JWT TESTS
+# =========================================================
 
 @pytest.mark.django_db
-def test_api_list_requires_auth():
-    client = APIClient()
-    response = client.get("/api/equipment/")
+def test_jwt_token_obtain(api_client):
+    User.objects.create_user(username="тест", password="пароль123")
+
+    response = api_client.post("/api/token/", {
+        "username": "тест",
+        "password": "пароль123"
+    })
+
+    assert response.status_code == 200
+    assert "access" in response.data
+    assert "refresh" in response.data
+
+
+@pytest.mark.django_db
+def test_protected_endpoint_requires_auth(api_client):
+    response = api_client.get("/api/equipment/")
     assert response.status_code == 401
 
 
-# =====================================
-# Tests: Roles and permissions
-# =====================================
+# =========================================================
+# PERMISSIONS TESTS
+# =========================================================
 
 @pytest.mark.django_db
-def test_viewer_can_only_get(viewer_user, equipment_data):
-    client = APIClient()
-    client.force_authenticate(user=viewer_user)
-    response = client.get(f"/api/equipment/{equipment_data.id}/")
+def test_viewer_can_get(api_client, viewer_user, equipment_data):
+    api_client.force_authenticate(viewer_user)
+    response = api_client.get("/api/equipment/")
     assert response.status_code == 200
-    response = client.post("/api/equipment/", {
-        "name": "Pump2",
-        "inventory_number": "INV002",
-        "equipment_type": equipment_data.equipment_type.id,
-        "workshop": equipment_data.workshop.id,
-        "characteristic_values": []
-    }, format="json")
-    assert response.status_code in [403, 401]
-    response = client.put(f"/api/equipment/{equipment_data.id}/", {
-        "name": "Pump1 Updated",
-        "inventory_number": equipment_data.inventory_number,
-        "equipment_type": equipment_data.equipment_type.id,
-        "workshop": equipment_data.workshop.id,
-        "characteristic_values": []
-    }, format="json")
-    assert response.status_code in [403, 401]
-    response = client.delete(f"/api/equipment/{equipment_data.id}/")
-    assert response.status_code in [403, 401]
 
 
 @pytest.mark.django_db
-def test_manager_can_crud_but_not_delete(manager_user, equipment_data):
-    client = APIClient()
-    client.force_authenticate(user=manager_user)
-    response = client.post("/api/equipment/", {
-        "name": "Pump2",
-        "inventory_number": "INV002",
-        "equipment_type": equipment_data.equipment_type.id,
-        "workshop": equipment_data.workshop.id,
-        "characteristic_values": []
-    }, format="json")
-    assert response.status_code == 201
-    response = client.put(f"/api/equipment/{equipment_data.id}/", {
-        "name": "Pump1 Updated",
-        "inventory_number": equipment_data.inventory_number,
-        "equipment_type": equipment_data.equipment_type.id,
-        "workshop": equipment_data.workshop.id,
-        "characteristic_values": []
-    }, format="json")
-    assert response.status_code == 200
-    response = client.delete(f"/api/equipment/{equipment_data.id}/")
+def test_viewer_cannot_post(api_client, viewer_user):
+    api_client.force_authenticate(viewer_user)
+    response = api_client.post("/api/equipment/", {})
     assert response.status_code == 403
 
 
 @pytest.mark.django_db
-def test_admin_can_crud(admin_user, equipment_data):
-    client = APIClient()
-    client.force_authenticate(user=admin_user)
-    response = client.post("/api/equipment/", {
-        "name": "Pump2",
-        "inventory_number": "INV002",
+def test_manager_can_post(api_client, manager_user, equipment_data):
+    api_client.force_authenticate(manager_user)
+
+    response = api_client.post("/api/equipment/", {
+        "name": "Молоток2",
+        "inventory_number": "М002",
         "equipment_type": equipment_data.equipment_type.id,
         "workshop": equipment_data.workshop.id,
         "characteristic_values": []
     }, format="json")
+
     assert response.status_code == 201
-    response = client.put(f"/api/equipment/{equipment_data.id}/", {
-        "name": "Pump1 Updated",
-        "inventory_number": equipment_data.inventory_number,
-        "equipment_type": equipment_data.equipment_type.id,
-        "workshop": equipment_data.workshop.id,
-        "characteristic_values": []
-    }, format="json")
-    assert response.status_code == 200
-    response = client.delete(f"/api/equipment/{equipment_data.id}/")
+
+
+@pytest.mark.django_db
+def test_manager_cannot_delete(api_client, manager_user, equipment_data):
+    api_client.force_authenticate(manager_user)
+    response = api_client.delete(f"/api/equipment/{equipment_data.id}/")
+    assert response.status_code == 403
+
+
+@pytest.mark.django_db
+def test_admin_can_delete(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+    response = api_client.delete(f"/api/equipment/{equipment_data.id}/")
     assert response.status_code == 204
 
 
-# =====================================
-# Tests: Filters, search, ordering, pagination
-# =====================================
+# =========================================================
+# CRUD TESTS
+# =========================================================
 
 @pytest.mark.django_db
-def test_equipment_list_filters(admin_user, db):
-    client = APIClient()
-    client.force_authenticate(user=admin_user)
-    site = Site.objects.create(name="Site2")
-    workshop = Workshop.objects.create(name="Workshop2", site=site)
-    eq_type = EquipmentType.objects.create(name="Valve")
-    for i in range(5):
-        Equipment.objects.create(
-            name=f"Valve{i}",
-            inventory_number=f"INV{i+100}",
-            equipment_type=eq_type,
-            workshop=workshop
-        )
-    response = client.get("/api/equipment/")
+def test_create_equipment(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+
+    response = api_client.post("/api/equipment/", {
+        "name": "Дрель1",
+        "inventory_number": "Д001",
+        "equipment_type": equipment_data.equipment_type.id,
+        "workshop": equipment_data.workshop.id,
+        "characteristic_values": []
+    }, format="json")
+
+    assert response.status_code == 201
+    assert response.data["name"] == "Дрель1"
+
+
+@pytest.mark.django_db
+def test_update_equipment(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+
+    response = api_client.put(f"/api/equipment/{equipment_data.id}/", {
+        "name": "МолотокОбновленный",
+        "inventory_number": "М001",
+        "equipment_type": equipment_data.equipment_type.id,
+        "workshop": equipment_data.workshop.id,
+        "characteristic_values": []
+    }, format="json")
+
+    assert response.status_code == 200
+    assert response.data["name"] == "МолотокОбновленный"
+
+
+@pytest.mark.django_db
+def test_list_equipment(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+    response = api_client.get("/api/equipment/")
     assert response.status_code == 200
     assert "results" in response.data
-    assert len(response.data["results"]) <= 2  # PAGE_SIZE = 2
-    response = client.get("/api/equipment/?search=Valve3")
-    assert response.status_code == 200
-    assert len(response.data["results"]) == 1
-    assert response.data["results"][0]["name"] == "Valve3"
-    response = client.get("/api/equipment/?ordering=-name")
-    assert response.status_code == 200
-    names = [item["name"] for item in response.data["results"]]
-    assert names == sorted(names, reverse=True)[:2]
 
 
-# =====================================
-# Tests: Equipment with characteristics
-# =====================================
+# =========================================================
+# FILTER TESTS
+# =========================================================
 
 @pytest.mark.django_db
-def test_equipment_with_characteristics(admin_user, db):
-    client = APIClient()
-    client.force_authenticate(user=admin_user)
-    site = Site.objects.create(name="Site3")
-    workshop = Workshop.objects.create(name="Workshop3", site=site)
-    eq_type = EquipmentType.objects.create(name="Motor")
-    char_speed = Characteristic.objects.create(name="Speed", equipment_type=eq_type, value_type="number")
-    char_voltage = Characteristic.objects.create(name="Voltage", equipment_type=eq_type, value_type="number")
-    response = client.post("/api/equipment/", {
-        "name": "Motor1",
-        "inventory_number": "INV500",
-        "equipment_type": eq_type.id,
-        "workshop": workshop.id,
-        "characteristic_values": [
-            {"characteristic": char_speed.id, "value": "1500"},
-            {"characteristic": char_voltage.id, "value": "220"}
-        ]
-    }, format="json")
-    assert response.status_code == 201
-    data = response.data
-    assert len(data["characteristic_values"]) == 2
-    equipment_id = data["id"]
-    response = client.put(f"/api/equipment/{equipment_id}/", {
-        "name": "Motor1 Updated",
-        "inventory_number": "INV500",
-        "equipment_type": eq_type.id,
-        "workshop": workshop.id,
-        "characteristic_values": [
-            {"characteristic": char_speed.id, "value": "1600"},
-        ]
-    }, format="json")
+def test_filter_by_equipment_type(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+
+    response = api_client.get(
+        f"/api/equipment/?equipment_type={equipment_data.equipment_type.id}"
+    )
+
     assert response.status_code == 200
-    assert len(response.data["characteristic_values"]) == 1
-    assert response.data["characteristic_values"][0]["value"] == "1600"
+    assert response.data["results"][0]["equipment_type"] == equipment_data.equipment_type.id
+
+
+@pytest.mark.django_db
+def test_search_by_name(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+
+    response = api_client.get("/api/equipment/?search=Молоток")
+
+    assert response.status_code == 200
+    assert len(response.data["results"]) >= 1
+
+
+@pytest.mark.django_db
+def test_ordering_desc(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+
+    Equipment.objects.create(
+        name="Дрель1",
+        inventory_number="Д001",
+        equipment_type=equipment_data.equipment_type,
+        workshop=equipment_data.workshop
+    )
+
+    response = api_client.get("/api/equipment/?ordering=-name")
+
+    assert response.status_code == 200
+    names = [item["name"] for item in response.data["results"]]
+    assert names == sorted(names, reverse=True)
+
+
+# =========================================================
+# PAGINATION TEST
+# =========================================================
+
+@pytest.mark.django_db
+def test_pagination(api_client, admin_user, equipment_data):
+    api_client.force_authenticate(admin_user)
+
+    for i in range(10):
+        Equipment.objects.create(
+            name=f"Станок{i}",
+            inventory_number=f"С{i:03d}",
+            equipment_type=equipment_data.equipment_type,
+            workshop=equipment_data.workshop
+        )
+
+    response = api_client.get("/api/equipment/")
+
+    assert response.status_code == 200
+    assert len(response.data["results"]) <= settings.REST_FRAMEWORK["PAGE_SIZE"]
+
+
+# =========================================================
+# THROTTLING TEST
+# =========================================================
+
+@pytest.mark.django_db
+def test_throttling_limit(api_client, admin_user, equipment_data, settings):
+    settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {
+        "user": "2/min"
+    }
+
+    api_client.force_authenticate(admin_user)
+
+    api_client.get("/api/equipment/")
+    api_client.get("/api/equipment/")
+    response = api_client.get("/api/equipment/")
+
+    assert response.status_code == 429

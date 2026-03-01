@@ -1,4 +1,4 @@
-name: django ci/cd
+name: github workflows
 
 on:
   push:

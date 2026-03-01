@@ -1,5 +1,4 @@
 from django.db import models
-from django.core.validators import MinLengthValidator
 
 
 class Site(models.Model):
@@ -28,7 +27,7 @@ class Workshop(models.Model):
 
 
 class EquipmentType(models.Model):
-    name = models.CharField( max_length=255, unique=True, db_index=True)
+    name = models.CharField(max_length=255, unique=True, db_index=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -50,6 +49,7 @@ class Characteristic(models.Model):
         (VALUE_TYPE_DATE, "Дата"),
         (VALUE_TYPE_BOOLEAN, "Логическое"),
     ]
+
     name = models.CharField(max_length=255)
     equipment_type = models.ForeignKey(EquipmentType, on_delete=models.CASCADE, related_name="characteristics")
     value_type = models.CharField(max_length=20, choices=VALUE_TYPE_CHOICES)
