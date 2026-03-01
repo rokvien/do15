@@ -38,8 +38,13 @@ jobs:
       - name: up
         run: docker compose up -d
 
+      - name: wait
+        run: sleep 10
+
       - name: migrate
         run: docker compose exec -T api python manage.py migrate
 
       - name: pytest
         run: docker compose exec -T api pytest --ds=config.settings --tb=short
+
+
