@@ -29,7 +29,7 @@ class EquipmentTypeViewSet(ModelViewSet):
     throttle_classes = [UserRateThrottle]
 
 
-@extend_schema(description="Equipment management API with role-based access")
+@extend_schema(description="Equipment API")
 class EquipmentViewSet(ModelViewSet):
     queryset = Equipment.objects.select_related(
         "equipment_type", "workshop", "workshop__site", "parent"

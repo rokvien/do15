@@ -5,8 +5,6 @@ from catalog.models import Equipment
 
 
 class Command(BaseCommand):
-    help = "создание ролей и назначение прав"
-
     def handle(self, *args, **kwargs):
         roles = ["Admin", "Manager", "Viewer"]
         groups = {name: Group.objects.get_or_create(name=name)[0] for name in roles}
@@ -25,6 +23,4 @@ class Command(BaseCommand):
                     groups[g].permissions.add(perm)
             if perm.codename.startswith("delete_"):
                 groups["Admin"].permissions.add(perm)
-
-        self.stdout.write(self.style.SUCCESS("роли успешно созданы"))
 
